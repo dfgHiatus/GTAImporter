@@ -1,5 +1,7 @@
 # GTAImporter
 
+![Capture](https://user-images.githubusercontent.com/51272212/192401108-c145e518-b51d-4037-a9a5-6cb8203acaa7.PNG)
+
 A [NeosModLoader](https://github.com/zkxs/NeosModLoader) mod for [Neos VR](https://neos.com/) that enables the import of GTA assets (`.odr`, `.odd`)
 
 ## Usage

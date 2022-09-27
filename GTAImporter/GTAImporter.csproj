@@ -8,8 +8,8 @@
     <ProjectGuid>{10B25A97-00B6-449B-BF50-3C345E055CDA}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>GTAImport</RootNamespace>
-    <AssemblyName>GTAImport</AssemblyName>
+    <RootNamespace>GTAImporter</RootNamespace>
+    <AssemblyName>GTAImporter</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

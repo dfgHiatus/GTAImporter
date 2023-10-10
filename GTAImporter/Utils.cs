@@ -2,7 +2,7 @@
 using System.IO;
 using System.Security.Cryptography;
 
-namespace AssetImportAPI
+namespace GTAVImporter
 {
     public static class Utils
     { 

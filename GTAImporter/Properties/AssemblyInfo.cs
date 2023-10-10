@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("GTAImporter")]
-[assembly: AssemblyDescription("A GTA Asset importer for NeosVR.")]
+[assembly: AssemblyDescription("A GTA Asset importer for Resonite.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Hiatus Labs")]
 [assembly: AssemblyProduct("GTAImporter")]

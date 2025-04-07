@@ -25,11 +25,6 @@ public class GTAVImporter : ResoniteMod
     public static ModConfiguration config;
 
     [AutoRegisterConfigKey]
-    internal readonly static ModConfigurationKey<bool> importAsRawFiles =
-         new("importAsRawFiles",
-         "Import raw versions of GTA files into Resonite",
-         () => false);
-    [AutoRegisterConfigKey]
     internal readonly static ModConfigurationKey<bool> importText =
         new("importText", "Import Text", () => true);
     [AutoRegisterConfigKey]
@@ -59,15 +54,67 @@ public class GTAVImporter : ResoniteMod
         new Harmony("net.dfgHiatus.GTAImporter").PatchAll();
         Directory.CreateDirectory(cachePath);
         config = GetConfiguration();
-        Engine.Current.RunPostInit(() => AssetPatch());
+        Engine.Current.RunPostInit(() => AssetPatch(new string[] { "odr", "odd" }));
     }
 
-    private static void AssetPatch()
+    public static void AssetPatch(string[] extension)
     {
-        var aExt = Traverse.Create(typeof(AssetHelper)).Field<Dictionary<AssetClass, List<string>>>("associatedExtensions");
-        aExt.Value[AssetClass.Special].Add("odr");
-        aExt.Value[AssetClass.Special].Add("odd");
+        Debug("Attempting to add MTL support to import system");
+
+        // Get ImportExtension type via reflection since it's now a struct inside AssetHelper
+        var assHelperType = typeof(AssetHelper);
+        var importExtType = assHelperType.GetNestedType("ImportExtension",
+            System.Reflection.BindingFlags.NonPublic);
+
+        if (importExtType == null)
+        {
+            Error("ImportExtension type not found. This mod is toast.");
+            return;
+        }
+
+        foreach (string extensionName in extension)
+        {
+            // Revised implementation using reflection to handle API changes
+            try
+            {
+                // Create an ImportExtension instance with reflection
+                // Constructor args: (string ext, bool autoImport)
+                var importExt = System.Activator.CreateInstance(importExtType,
+                    new object[] { extensionName, true });
+
+                // Get the associatedExtensions field via reflection
+                var extensionsField = assHelperType.GetField("associatedExtensions",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+                if (extensionsField == null)
+                {
+                    Error("Could not find associatedExtensions field");
+                    return;
+                }
+
+                // Get the dictionary and add our extension to the Special asset class
+                var extensions = extensionsField.GetValue(null);
+                var dictType = extensions.GetType();
+                var specialValue = dictType.GetMethod("get_Item").Invoke(extensions, new object[] { AssetClass.Special });
+
+                if (specialValue == null)
+                {
+                    Error("Couldn't get Special asset class list");
+                    return;
+                }
+
+                // Add our ImportExtension to the list
+                specialValue.GetType().GetMethod("Add").Invoke(specialValue, new[] { importExt });
+
+                Debug("MTL import extension added successfully");
+            }
+            catch (System.Exception ex)
+            {
+                Error($"Failed to add MTL to special import formats: {ex}");
+            }
+        }
     }
+
 
     [HarmonyPatch(typeof(UniversalImporter), "ImportTask", typeof(AssetClass), typeof(IEnumerable<string>),
         typeof(World), typeof(float3), typeof(floatQ), typeof(float3), typeof(bool))]
@@ -96,16 +143,6 @@ public class GTAVImporter : ResoniteMod
         List<string> canidatesToBatchImport = new();
         foreach (var file in gtaFiles)
         {
-            if (config.GetValue(importAsRawFiles))
-            {
-                await default(ToWorld);
-                var rawSlot = world.AddSlot();
-                rawSlot.PositionInFrontOfUser();
-                await UniversalImporter.ImportRawFile(rawSlot, file);
-                await default(ToBackground);
-                continue;     
-            }
-
             var canidateDir = Path.Combine(cachePath, Utils.GenerateMD5(file));
             
             if (Directory.Exists(canidateDir) && Directory.GetFiles(canidateDir).Length > 0)
@@ -131,7 +168,7 @@ public class GTAVImporter : ResoniteMod
 
         var slot = Engine.Current.WorldManager.FocusedWorld.AddSlot("GTA Import");
         slot.PositionInFrontOfUser();
-        BatchFolderImporter.BatchImport(slot, directoriesToBatchImport, config.GetValue(importAsRawFiles));
+        BatchFolderImporter.BatchImport(slot, directoriesToBatchImport);
         
         // As GTA uses DirectX normal maps, we need to invert the green channel
         foreach (var staticTexture in slot.GetComponentsInChildren<StaticTexture2D>())
